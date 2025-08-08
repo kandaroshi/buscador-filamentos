@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Filamentos 3D • Explorador de Colores</title>
+
+<!-- ---------- CSS INLINE ---------- -->
+<style>
+    :root{
+        --bg1:#1e3c72;
+        --bg2:#2a5298;
+        --panel:rgba(255,255,255,0.08);
+        --txt:#f6f8fc;
+        --txt-muted:#cfd8e3;
+        --rad:12px;
+        --tr:0.25s ease;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:var(--txt);}
+    body{
+        min-height:100vh;
+        display:flex;
+        flex-direction:column;
+        background:linear-gradient(135deg,var(--bg1),var(--bg2));
+        overflow:hidden;
+    }
+    /* ----- Layout principal ----- */
+    #app{flex:1;display:flex;gap:1rem;padding:1rem;}
+    .panel{
+        background:var(--panel);
+        border:1px solid rgba(255,255,255,0.15);
+        border-radius:var(--rad);
+        backdrop-filter:blur(8px);
+        padding:1rem;
+        box-shadow:0 6px 14px rgba(0,0,0,0.25);
+        display:flex;flex-direction:column;
+    }
+
+    /* ----- Panel izquierdo ----- */
+    #left{width:25%;min-width:220px;}
+    #left h2{margin-bottom:0.5rem;font-size:1.1rem;}
+    #search{
+        width:100%;padding:0.4rem 0.6rem;margin-bottom:0.6rem;
+        border-radius:var(--rad);border:none;outline:none;color:#000;
+    }
+    #filamentList{flex:1;overflow-y:auto;padding-right:0.3rem;}
+    .filament-item{
+        display:flex;align-items:center;gap:0.6rem;
+        padding:0.35rem;border-radius:var(--rad);cursor:pointer;
+        transition:background var(--tr);
+    }
+    .filament-item:hover{background:rgba(255,255,255,0.10);}
+    .swatch{width:24px;height:24px;border-radius:4px;border:1px solid #0004;}
+
+    /* ----- Panel central ----- */
+    #center{flex:1;align-items:center;text-align:center;gap:1rem;}
+    #colorPicker{
+        width:200px;height:200px;border-radius:50%;border:none;overflow:hidden;cursor:pointer;
+        box-shadow:0 0 0 4px rgba(0,0,0,0.3);
+    }
+    #selectedInfo{font-size:1.2rem;margin-top:0.5rem;}
+    /* Cubo 3D */
+    #cube-wrapper{width:180px;height:180px;margin:auto;perspective:600px;}
+    #cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;animation:spin 12s linear infinite;}
+    #cube div{
+        position:absolute;width:100%;height:100%;
+        background:var(--cube-color,#ffffff);opacity:0.9;
+        border:2px solid rgba(0,0,0,0.15);
+    }
+    #cube .front{transform:translateZ(90px);}
+    #cube .back{transform:rotateY(180deg) translateZ(90px);}
+    #cube .right{transform:rotateY(90deg) translateZ(90px);}
+    #cube .left{transform:rotateY(-90deg) translateZ(90px);}
+    #cube .top{transform:rotateX(90deg) translateZ(90px);}
+    #cube .bottom{transform:rotateX(-90deg) translateZ(90px);}
+    @keyframes spin{from{transform:rotateX(0)rotateY(0);}to{transform:rotateX(360deg)rotateY(360deg);}}
+
+    /* Botón e idea */
+    #generateIdea{
+        margin-top:0.7rem;padding:0.5rem 1rem;border:none;border-radius:var(--rad);
+        font-weight:bold;background:#ffb703;color:#000;cursor:pointer;
+        transition:background var(--tr),transform var(--tr);
+    }
+    #generateIdea:hover{background:#ffd166;transform:translateY(-2px);}
+    #ideaBox{
+        background:rgba(0,0,0,0.25);padding:0.7rem;margin-top:0.7rem;
+        border-radius:var(--rad);min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;
+    }
+
+    /* ----- Panel derecho ----- */
+    #right{width:25%;min-width:220px;}
+    #right h3{margin-bottom:0.4rem;font-size:1.05rem;text-align:center;}
+    #similarList{flex:1;overflow-y:auto;padding-right:0.3rem;}
+    .similar-item{display:flex;align-items:center;gap:0.6rem;margin:0.3rem 0;}
+
+    /* Scrollbar */
+    ::-webkit-scrollbar{width:8px;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:4px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+
+    /* Responsive */
+    @media(max-width:1000px){
+        #app{flex-direction:column;}
+        #left,#right{width:auto;min-width:100%;}
+    }
+</style>
+</head>
+
+<body>
+<div id="app">
+    <!-- Panel izquierdo -->
+    <section id="left" class="panel">
+        <h2>Filamentos de nuestra web</h2>
+        <input id="search" type="text" placeholder="Buscar por nombre o HEX…" />
+        <div id="filamentList"></div>
+    </section>
+
+    <!-- Panel central -->
+    <section id="center" class="panel">
+        <input type="color" id="colorPicker" title="Elige un color" />
+        <div id="selectedInfo">Elige un color para empezar</div>
+
+        <div id="cube-wrapper">
+            <div id="cube">
+                <div class="front"></div><div class="back"></div>
+                <div class="right"></div><div class="left"></div>
+                <div class="top"></div><div class="bottom"></div>
+            </div>
+        </div>
+
+        <button id="generateIdea">Generar idea con este color</button>
+        <div id="ideaBox"></div>
+    </section>
+
+    <!-- Panel derecho -->
+    <section id="right" class="panel">
+        <h3>Colores más parecidos</h3>
+        <div id="similarList"></div>
+    </section>
+</div>
+
+<!-- ---------- JAVASCRIPT INLINE ---------- -->
+<script>
+/* Datos de filamentos */
+const filaments=[
+  {name:"Grilon 3 PLA SILK Platino 1.75mm x 1kg",hex:"#5b6770",link:"https://www.hoho3d.com.ar/impresion-3d/filamentos/grilon-3/silk/grilon-3-pla-silk-platino-175mm-x-1kg-5b6770"},
+  {name:"Grilon 3 PLA Piel 720 1.75mm x 1KG",hex:"#e7b78a",link:"https://www.hoho3d.com.ar/impresion-3d/filamentos/grilon-3/basicos/grilon-3-pla-piel-720-175mm-x-1kg-e7b78a"},
+  {name:"Grilon 3 PLA Gris Plata 1.75mm x 1kg",hex:"#75787b",link:"https://www.hoho3d.com.ar/impresion-3d/filamentos/grilon-3/basicos/grilon-3-pla-gris-plata-175mm-x-1kg-75787b"},
+  {name:"Grilon 3 PLA Cobre 1.75mm x 1kg",hex:"#a1561c",link:"https://www.hoho3d.com.ar/impresion-3d/filamentos/grilon-3/basicos/grilon-3-pla-cobre-175mm-x-1kg-a1561c"},
+  {name:"Grilon 3 PLA Bronce 1.75mm x 1kg",hex:"#998542",link:"https://www.hoho3d.com.ar/impresion-3d/filamentos/grilon-3/basicos/grilon-3-pla-bronce-175mm-x-1kg-998542"}
+];
+const ideas=[
+  "Soporte para auriculares","Maceta geométrica decorativa",
+  "Organizador de escritorio modular","Porta cepillos de dientes minimalista",
+  "Soporte de smartphone ajustable"
+];
+
+/* Elementos DOM */
+const filamentListEl=document.getElementById("filamentList");
+const searchEl=document.getElementById("search");
+const colorPicker=document.getElementById("colorPicker");
+const cube=document.getElementById("cube");
+const selectedInfo=document.getElementById("selectedInfo");
+const similarList=document.getElementById("similarList");
+const ideaBtn=document.getElementById("generateIdea");
+const ideaBox=document.getElementById("ideaBox");
+
+let currentColor="#ffffff";
+
+/* Render listado */
+function renderFilaments(filter=""){
+  filamentListEl.innerHTML="";
+  filaments.forEach(f=>{
+    if(!f.name.toLowerCase().includes(filter)&&!f.hex.toLowerCase().includes(filter))return;
+    const div=document.createElement("div");
+    div.className="filament-item";
+    div.innerHTML=`
+      <div class="swatch" style="background:${f.hex}"></div>
+      <div style="flex:1">
+        <div>${f.name}</div>
+        <div style="font-size:.8rem;color:var(--txt-muted)">${f.hex}</div>
+      </div>`;
+    div.onclick=()=>setColor(f.hex);
+    filamentListEl.appendChild(div);
+  });
+}
+renderFilaments();
+searchEl.oninput=e=>renderFilaments(e.target.value.trim().toLowerCase());
+
+/* Configurar color */
+function setCubeColor(hex){cube.style.setProperty("--cube-color",hex);}
+function setColor(hex){
+  currentColor=hex;
+  colorPicker.value=hex;
+  setCubeColor(hex);
+  const match=filaments.find(f=>f.hex.toLowerCase()===hex.toLowerCase());
+  selectedInfo.textContent=match?match.name:`Color seleccionado: ${hex}`;
+  renderSimilar(hex);
+}
+colorPicker.oninput=e=>setColor(e.target.value);
+
+/* Similitud de colores */
+function hexToRGB(h){return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+function dist(a,b){return Math.hypot(a.r-b.r,a.g-b.g,a.b-b.b);}
+function renderSimilar(hex){
+  similarList.innerHTML="";
+  const base=hexToRGB(hex);
+  [...filaments].sort((x,y)=>dist(base,hexToRGB(x.hex))-dist(base,hexToRGB(y.hex)))
+  .forEach(f=>{
+    const d=Math.round(dist(base,hexToRGB(f.hex)));
+    const row=document.createElement("div");
+    row.className="similar-item";
+    row.innerHTML=`
+      <div class="swatch" style="background:${f.hex}"></div>
+      <div style="flex:1">
+        <a href="${f.link}" target="_blank" style="color:inherit;text-decoration:none">${f.name}</a>
+        <div style="font-size:.8rem;color:var(--txt-muted)">${f.hex} • Δ=${d}</div>
+      </div>`;
+    similarList.appendChild(row);
+  });
+}
+
+/* Generador de ideas */
+ideaBtn.onclick=()=>{
+  const idea=ideas[Math.floor(Math.random()*ideas.length)];
+  const fil=filaments[Math.floor(Math.random()*filaments.length)];
+  ideaBox.innerHTML=`
+    <div style="font-weight:bold;text-align:center">💡 ${idea}</div>
+    <div style="margin-top:.3rem">Color sugerido:</div>
+    <div class="swatch" style="background:${fil.hex};width:40px;height:40px;margin-top:.2rem"></div>
+    <div style="font-size:.85rem;margin-top:.2rem">${fil.name} (${fil.hex})</div>`;
+  setColor(fil.hex);
+};
+
+/* Init */
+setColor(currentColor);
+</script>
+</body>
+</html>
